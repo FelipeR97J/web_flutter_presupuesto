@@ -20,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   CategoryDistribution? _distribution;
   DashboardHistory? _history;
   bool _isLoading = true;
+  int _touchedIndex = -1;
 
   @override
   void initState() {
@@ -292,25 +293,103 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 200,
-              child: PieChart(
-                PieChartData(
-                  sections: _distribution!.categories.map((cat) {
-                    return PieChartSectionData(
-                      value: cat.total,
-                      title: '${cat.percentage.toStringAsFixed(0)}%',
-                      color: cat.colorValue,
-                      radius: 50,
-                      titleStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+              height: 250,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                pieTouchResponse == null ||
+                                pieTouchResponse.touchedSection == null) {
+                              _touchedIndex = -1;
+                              return;
+                            }
+                            _touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                          });
+                        },
                       ),
-                    );
-                  }).toList(),
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 40,
-                ),
+                      sections: _distribution!.categories.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final cat = entry.value;
+                        final isTouched = index == _touchedIndex;
+                        final fontSize = isTouched ? 16.0 : 12.0;
+                        final radius = isTouched ? 60.0 : 50.0;
+                        
+                        return PieChartSectionData(
+                          value: cat.total,
+                          title: isTouched ? '' : '${cat.percentage.toStringAsFixed(0)}%',
+                          color: cat.colorValue,
+                          radius: radius,
+                          titleStyle: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        );
+                      }).toList(),
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 40,
+                    ),
+                  ),
+                  if (_touchedIndex != -1 && _touchedIndex < _distribution!.categories.length)
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _distribution!.categories[_touchedIndex].name,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          '\$${NumberFormat('#,##0', 'es_ES').format(_distribution!.categories[_touchedIndex].total.toInt())}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: _distribution!.categories[_touchedIndex].colorValue,
+                          ),
+                        ),
+                        Text(
+                          '${_distribution!.categories[_touchedIndex].percentage.toStringAsFixed(1)}%',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Total',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          '\$${NumberFormat.compact(locale: 'es_ES').format(_distribution!.total)}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
