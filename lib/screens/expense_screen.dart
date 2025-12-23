@@ -3,8 +3,10 @@ import 'package:intl/intl.dart';
 import '../models/expense_model.dart';
 import '../services/auth_service.dart';
 import '../services/expense_service.dart';
+import '../services/debt_service.dart'; // Added
 import '../widgets/pagination_controls.dart';
 import '../widgets/expense_form_dialog.dart';
+import 'debt_detail_screen.dart'; // Added
 
 class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
@@ -16,6 +18,7 @@ class ExpenseScreen extends StatefulWidget {
 class _ExpenseScreenState extends State<ExpenseScreen> {
   final _authService = AuthService();
   final _expenseService = ExpenseService();
+  final _debtService = DebtService(); // Added
 
   List<Expense> _expenses = [];
   bool _isLoading = true;
@@ -30,11 +33,40 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   int _totalPages = 1;
   final int _pageSize = 10;
   bool _isPaginationLoading = false;
+  double _totalAmount = 0.0; // Variable para el total del mes
 
   @override
   void initState() {
     super.initState();
     _loadExpenses();
+    _loadTotalAmount(); // Cargar total al inicio
+  }
+
+  // ============================================
+  // MÉTODO: Cargar total del mes
+  // ============================================
+  Future<void> _loadTotalAmount() async {
+    try {
+      final token = _authService.token;
+      if (token == null) return;
+
+      // Usar getExpenses sin paginación pero con filtros de fecha
+      final allExpensesInMonth = await _expenseService.getExpenses(
+        token,
+        year: _selectedYear,
+        month: _selectedMonth,
+      );
+
+      final total = _expenseService.calculateTotal(allExpensesInMonth);
+      
+      if (mounted) {
+        setState(() {
+          _totalAmount = total;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error calculando total del mes: $e');
+    }
   }
 
   // ============================================
@@ -42,11 +74,17 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   // Aquí se obtienen todos los gastos con paginación
   // ============================================
   Future<void> _loadExpenses({int page = 1}) async {
+    debugPrint('Loading expenses page: $page');
     setState(() {
       _isLoading = true;
       _isPaginationLoading = true;
       _errorMessage = null;
     });
+
+    // Recargar también el total global del mes si cambiamos de filtro (página 1 implica posible cambio de filtro o recarga inicial)
+    if (page == 1) {
+      _loadTotalAmount();
+    }
 
     try {
       final token = _authService.token;
@@ -54,6 +92,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         throw Exception('Token no disponible');
       }
 
+      debugPrint('Calling service with page: $page, year: $_selectedYear, month: $_selectedMonth');
       final response = await _expenseService.getExpensesPaginated(
         token,
         page: page,
@@ -62,14 +101,25 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
         month: _selectedMonth,
       );
       
+      debugPrint('Response received. Total pages: ${response.totalPages}, Data length: ${response.data.length}');
+
       if (mounted) {
         setState(() {
           _expenses = response.data;
           _currentPage = page;
-          _totalPages = response.totalPages;
+          
+          // Lógica de paginación optimista:
+          // Si la cantidad de items recibidos es igual al límite, asumimos que hay una página más,
+          // independientemente de lo que diga la API (que a veces devuelve mal el total).
+          if (response.data.length == _pageSize && response.totalPages <= page) {
+            _totalPages = page + 1;
+          } else {
+            _totalPages = response.totalPages;
+          }
         });
       }
     } catch (e) {
+      debugPrint('Error loading expenses: $e');
       if (mounted) {
         setState(() {
           _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -86,9 +136,53 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   }
 
   // ============================================
+  // MÉTODO: Navegar al detalle de deuda
+  // ============================================
+  Future<void> _navigateToDebtDetail(int debtId) async {
+    try {
+      // Mostrar loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final token = _authService.token;
+      if (token == null) throw Exception('Token no disponible');
+
+      final debt = await _debtService.getDebtById(token, debtId);
+      
+      // Cerrar loading
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+      if (mounted && debt != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DebtDetailScreen(debt: debt),
+          ),
+        );
+      }
+    } catch (e) {
+      // Cerrar loading si hay error
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar detalle de deuda: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // ============================================
   // MÉTODO: Eliminar gasto con confirmación
   // ============================================
   void _handleDeleteExpense(Expense expense) {
+
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -393,7 +487,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                '\$${NumberFormat('#,##0', 'es_ES').format(_expenseService.calculateTotal(_expenses).toInt())}',
+                                '\$${NumberFormat('#,##0', 'es_ES').format(_totalAmount.toInt())}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 28,
@@ -403,7 +497,6 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                             ],
                           ),
                         ),
-
                         // ============================================
                         // LISTA: Gastos registrados
                         // ============================================
@@ -498,7 +591,11 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                   ],
                                 ),
                                 onTap: isDebt 
-                                  ? null // No permitir editar pagos de deuda directamente
+                                  ? () {
+                                      if (expense.debtId != null) {
+                                        _navigateToDebtDetail(expense.debtId!);
+                                      }
+                                    }
                                   : () => _navigateToEditExpense(expense),
                               ),
                             );
@@ -508,18 +605,20 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         // ============================================
                         // PAGINACIÓN
                         // ============================================
-                        if (_totalPages > 1)
-                          PaginationControls(
-                            currentPage: _currentPage,
-                            totalPages: _totalPages,
-                            isLoading: _isPaginationLoading,
-                            onPreviousPage: _currentPage > 1
-                                ? () => _loadExpenses(page: _currentPage - 1)
-                                : () {},
-                            onNextPage: _currentPage < _totalPages
-                                ? () => _loadExpenses(page: _currentPage + 1)
-                                : () {},
-                          ),
+                        // ============================================
+                        // PAGINACIÓN
+                        // ============================================
+                        PaginationControls(
+                          currentPage: _currentPage,
+                          totalPages: _totalPages > 0 ? _totalPages : 1,
+                          isLoading: _isPaginationLoading,
+                          onPreviousPage: _currentPage > 1
+                              ? () => _loadExpenses(page: _currentPage - 1)
+                              : () {},
+                          onNextPage: _currentPage < _totalPages
+                              ? () => _loadExpenses(page: _currentPage + 1)
+                              : () {},
+                        ),
                       ],
                     ),
     );

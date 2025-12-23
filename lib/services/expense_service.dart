@@ -43,7 +43,7 @@ class ExpenseService {
       );
 
       debugPrint('Get Expenses Paginated Response Status: ${response.statusCode}');
-      debugPrint('Get Expenses Paginated Response Body: ${response.body}');
+      debugPrint('EXPENSE_RAW_JSON: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonData = jsonDecode(response.body);
@@ -52,7 +52,9 @@ class ExpenseService {
         if (jsonData is Map<String, dynamic>) {
           final data = jsonData['data'] as List<dynamic>? ?? [];
           final totalItems = jsonData['total'] as int? ?? data.length;
-          final totalPages = jsonData['pages'] as int? ?? 1;
+          // Calcular totalPages manualmente si no viene o para asegurar precisión
+          final calculatedPages = (totalItems / limit).ceil();
+          final totalPages = jsonData['pages'] as int? ?? (calculatedPages > 0 ? calculatedPages : 1);
 
           final expenses = data
               .map((json) => Expense.fromJson(json as Map<String, dynamic>))
@@ -82,14 +84,23 @@ class ExpenseService {
   // MÉTODO: Obtener lista de todos los gastos
   // Aquí se obtienen todos los gastos del usuario
   // ============================================
-  Future<List<Expense>> getExpenses(String token) async {
+  Future<List<Expense>> getExpenses(String token, {int? year, int? month}) async {
     try {
       if (token.isEmpty) {
         throw Exception('Token no disponible');
       }
 
+      String url = '${ApiConfig.baseUrl}${ApiConfig.expenseEndpoint}/';
+      List<String> queryParams = [];
+      if (year != null) queryParams.add('year=$year');
+      if (month != null) queryParams.add('month=$month');
+      
+      if (queryParams.isNotEmpty) {
+        url += '?${queryParams.join('&')}';
+      }
+
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.expenseEndpoint}/'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
