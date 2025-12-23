@@ -84,7 +84,7 @@ class ExpenseService {
   // MÉTODO: Obtener lista de todos los gastos
   // Aquí se obtienen todos los gastos del usuario
   // ============================================
-  Future<List<Expense>> getExpenses(String token, {int? year, int? month}) async {
+  Future<List<Expense>> getExpenses(String token, {int? year, int? month, int? limit}) async {
     try {
       if (token.isEmpty) {
         throw Exception('Token no disponible');
@@ -94,6 +94,7 @@ class ExpenseService {
       List<String> queryParams = [];
       if (year != null) queryParams.add('year=$year');
       if (month != null) queryParams.add('month=$month');
+      if (limit != null) queryParams.add('limit=$limit');
       
       if (queryParams.isNotEmpty) {
         url += '?${queryParams.join('&')}';
@@ -270,5 +271,23 @@ class ExpenseService {
   // ============================================
   double calculateTotal(List<Expense> expenses) {
     return expenses.fold(0.0, (sum, expense) => sum + expense.amount);
+  }
+
+  // ============================================
+  // MÉTODO: Calcular total de cuotas (deudas)
+  // ============================================
+  double calculateInstallmentsTotal(List<Expense> expenses) {
+    return expenses
+        .where((e) => e.debtId != null)
+        .fold(0.0, (sum, expense) => sum + expense.amount);
+  }
+
+  // ============================================
+  // MÉTODO: Calcular total de gastos normales
+  // ============================================
+  double calculateRegularTotal(List<Expense> expenses) {
+    return expenses
+        .where((e) => e.debtId == null)
+        .fold(0.0, (sum, expense) => sum + expense.amount);
   }
 }

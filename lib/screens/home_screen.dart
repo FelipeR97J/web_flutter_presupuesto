@@ -21,6 +21,8 @@ import 'debt_screen.dart';
 import 'bank_screen.dart';
 import 'credit_card_screen.dart';
 import 'dashboard_screen.dart';
+import 'inventory_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -570,6 +572,17 @@ class _HomeScreenState extends State<HomeScreen> {
         return CreditCardScreen();
       case 'dashboard2':
         return DashboardScreen();
+      case 'inventory': // Added
+        return const InventoryScreen();
+      case 'settings': // Added
+        return SettingsScreen(
+          user: _user,
+          onProfileUpdated: _loadUserProfile,
+          onPasswordChanged: () {
+             // Ya se muestra un mensaje en la pantalla de cambio de contraseña
+          },
+          onLogoutRequired: widget.onLogout,
+        );
       default:
         return Column(
           children: [

@@ -33,7 +33,8 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   int _totalPages = 1;
   final int _pageSize = 10;
   bool _isPaginationLoading = false;
-  double _totalAmount = 0.0; // Variable para el total del mes
+  double _totalExpenses = 0.0; // Total de gastos normales
+  double _totalInstallments = 0.0; // Total de cuotas de deuda
 
   @override
   void initState() {
@@ -50,18 +51,22 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       final token = _authService.token;
       if (token == null) return;
 
-      // Usar getExpenses sin paginación pero con filtros de fecha
+      // Usar getExpenses sin paginación pero con filtros de fecha y límite alto
       final allExpensesInMonth = await _expenseService.getExpenses(
         token,
         year: _selectedYear,
         month: _selectedMonth,
+        limit: 1000,
       );
 
       final total = _expenseService.calculateTotal(allExpensesInMonth);
+      final regularExpenses = total - _expenseService.calculateInstallmentsTotal(allExpensesInMonth);
+      final installmentsTotal = _expenseService.calculateInstallmentsTotal(allExpensesInMonth);
       
       if (mounted) {
         setState(() {
-          _totalAmount = total;
+          _totalExpenses = regularExpenses;
+          _totalInstallments = installmentsTotal;
         });
       }
     } catch (e) {
@@ -463,35 +468,98 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         // ============================================
                         // TARJETA: Resumen de gastos totales
                         // ============================================
-                        Container(
-                          margin: const EdgeInsets.all(16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Colors.indigo, Colors.indigo[300]!],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        // ============================================
+                        // TARJETAS: Resumen de gastos separamos (Gastos vs Cuotas)
+                        // ============================================
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          child: Row(
                             children: [
-                              const Text(
-                                'Total de Gastos',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                              // Tarjeta de Gastos Normales
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Colors.indigo, Colors.indigo[300]!],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.indigo.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Gastos',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '\$${NumberFormat('#,##0', 'es_ES').format(_totalExpenses.toInt())}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '\$${NumberFormat('#,##0', 'es_ES').format(_totalAmount.toInt())}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
+                              const SizedBox(width: 12),
+                              // Tarjeta de Cuotas
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Colors.orange[800]!, Colors.orange[400]!],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.orange.withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Total Cuotas',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '\$${NumberFormat('#,##0', 'es_ES').format(_totalInstallments.toInt())}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
