@@ -51,6 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<IncomeCategory> _incomeCategories = [];
   List<ExpenseCategory> _expenseCategories = [];
   bool _dashboardLoading = false;
+  double _totalInstallments = 0.0; // Total de cuotas del mes
+  int _totalInstallmentsCount = 0; // Cantidad de cuotas del mes
   Timer? _autoRefreshTimer;
   
   // Navegación
@@ -129,10 +131,24 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final token = _authService.token ?? '';
       
+      final now = DateTime.now();
+      
+      // Obtener ingresos y gastos totales (podríamos filtrar por mes si se requiere)
       final incomes = await _incomeService.getIncomes(token);
-      final expenses = await _expenseService.getExpenses(token);
+      
+      // Obtener gastos del mes actual para cálculo correcto de cuotas y resumen mensual
+      final expenses = await _expenseService.getExpenses(
+        token, 
+        year: now.year, 
+        month: now.month,
+        limit: 1000, // Traer todos para cálculo correcto
+      );
+      
       final incomeCategories = await _incomeCategoryService.getCategories();
       final expenseCategories = await _expenseCategoryService.getCategories();
+
+      final totalInstallments = _expenseService.calculateInstallmentsTotal(expenses);
+      final totalInstallmentsCount = expenses.where((e) => e.debtId != null).length;
 
       if (mounted) {
         setState(() {
@@ -140,6 +156,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _expenses = expenses;
           _incomeCategories = incomeCategories.data;
           _expenseCategories = expenseCategories.data;
+          _totalInstallments = totalInstallments;
+          _totalInstallmentsCount = totalInstallmentsCount;
           _dashboardLoading = false;
         });
       }
@@ -809,6 +827,30 @@ class _HomeScreenState extends State<HomeScreen> {
                                               _expenses.isEmpty ? '\$0' : '\$${NumberFormat('#,##0', 'es_ES').format(_expenseService.calculateTotal(_expenses).toInt())}',
                                               _expenses.length.toString(),
                                               Colors.red,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+
+                                          // Resumen de Cuotas (Nuevo)
+                                          SizedBox(
+                                            width: 120,
+                                            child: _buildDashboardMetric(
+                                              '💳 Cuotas Mes',
+                                              '\$${NumberFormat('#,##0', 'es_ES').format(_totalInstallments.toInt())}',
+                                              'total a pagar',
+                                              Colors.deepOrange,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+
+                                          // Cantidad de Cuotas (Nuevo)
+                                          SizedBox(
+                                            width: 120,
+                                            child: _buildDashboardMetric(
+                                              '🔢 N° Cuotas',
+                                              _totalInstallmentsCount.toString(),
+                                              'pagos este mes',
+                                              Colors.amber[800]!,
                                             ),
                                           ),
                                           const SizedBox(width: 12),
