@@ -3,8 +3,10 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-void main() {
+void main() async {
+  await initializeDateFormatting('es_ES', null);
   runApp(const MyApp());
 }
 

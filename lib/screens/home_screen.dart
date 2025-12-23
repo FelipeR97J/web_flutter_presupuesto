@@ -17,6 +17,10 @@ import 'income_screen.dart';
 import 'expense_screen.dart';
 import 'income_category_screen.dart';
 import 'expense_category_screen.dart';
+import 'debt_screen.dart';
+import 'bank_screen.dart';
+import 'credit_card_screen.dart';
+import 'dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -228,6 +232,30 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _navigateToDebt() {
+    setState(() {
+      _currentPage = 'debt';
+    });
+  }
+
+  void _navigateToBank() {
+    setState(() {
+      _currentPage = 'bank';
+    });
+  }
+
+  void _navigateToCreditCard() {
+    setState(() {
+      _currentPage = 'credit_card';
+    });
+  }
+
+  void _navigateToDashboard2() {
+    setState(() {
+      _currentPage = 'dashboard2';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -373,6 +401,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   'expense',
                   onTap: _navigateToExpense,
                 ),
+                _buildSidebarItem(
+                  Icons.credit_card,
+                  'Deudas',
+                  'debt',
+                  onTap: _navigateToDebt,
+                ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Divider(color: Colors.white30, height: 1),
@@ -388,6 +422,32 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Cat. Gastos',
                   'expense_categories',
                   onTap: _navigateToExpenseCategories,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Divider(color: Colors.white30, height: 1),
+                ),
+                _buildSidebarItem(
+                  Icons.dashboard_customize,
+                  'Dashboard 2.0',
+                  'dashboard2',
+                  onTap: _navigateToDashboard2,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Divider(color: Colors.white30, height: 1),
+                ),
+                _buildSidebarItem(
+                  Icons.account_balance,
+                  'Bancos',
+                  'bank',
+                  onTap: _navigateToBank,
+                ),
+                _buildSidebarItem(
+                  Icons.credit_card,
+                  'Tarjetas',
+                  'credit_card',
+                  onTap: _navigateToCreditCard,
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
@@ -502,7 +562,15 @@ class _HomeScreenState extends State<HomeScreen> {
         return _incomeCategoryScreenEmbedded();
       case 'expense_categories':
         return _expenseCategoryScreenEmbedded();
-        default:
+      case 'debt':
+        return DebtScreen();
+      case 'bank':
+        return BankScreen();
+      case 'credit_card':
+        return CreditCardScreen();
+      case 'dashboard2':
+        return DashboardScreen();
+      default:
         return Column(
           children: [
             // ============================================

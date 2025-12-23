@@ -16,7 +16,7 @@ class ExpenseCategoryService {
   /// Get all active expense categories with pagination
   Future<PaginationResponse<ExpenseCategory>> getCategories({
     int page = 1,
-    int limit = 10,
+    int limit = 20,
     String sortBy = 'isActive,name',
     String sortOrder = 'desc,asc',
   }) async {
@@ -38,6 +38,26 @@ class ExpenseCategoryService {
       }
     } catch (e) {
       throw Exception('Error loading expense categories: $e');
+    }
+  }
+
+  /// Get a single expense category by ID
+  Future<ExpenseCategory> getCategoryById(String token, int categoryId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/expense-categories/$categoryId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return ExpenseCategory.fromJson(jsonDecode(response.body));
+      } else {
+        throw Exception('Failed to load expense category');
+      }
+    } catch (e) {
+      throw Exception('Error loading expense category: $e');
     }
   }
 

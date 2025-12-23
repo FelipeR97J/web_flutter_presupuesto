@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Versión con Datos Pre-rellenados
     // ============================================
     _emailController.text = 'admin@example.com';
-    _passwordController.text = 'contraseña123';
+    _passwordController.text = '123456';
   }
 
   @override

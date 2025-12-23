@@ -13,6 +13,7 @@ class Expense {
   final DateTime createdAt;
   final DateTime updatedAt;
   final int categoryId;
+  final int? debtId; // Field added
 
   Expense({
     required this.id,
@@ -22,7 +23,10 @@ class Expense {
     required this.createdAt,
     required this.updatedAt,
     required this.categoryId,
+    this.debtId, // Parameter added
   });
+
+  bool get isDebtPayment => debtId != null;
 
   // ============================================
   // MÉTODO: Convertir JSON a objeto Expense
@@ -37,6 +41,7 @@ class Expense {
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : DateTime.now(),
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : DateTime.now(),
       categoryId: json['categoryId'] as int? ?? 0,
+      debtId: json['debtId'] as int?,
     );
   }
 
@@ -53,6 +58,7 @@ class Expense {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'categoryId': categoryId,
+      'debtId': debtId,
     };
   }
 
@@ -61,6 +67,7 @@ class Expense {
   // Aquí puedes cambiar el formato de dinero
   // ============================================
   String get formattedAmount {
+    // Usamos el locale por defecto inicializado en main.dart
     final formatter = NumberFormat('#,##0', 'es_ES');
     return '\$${formatter.format(amount.toInt())}';
   }

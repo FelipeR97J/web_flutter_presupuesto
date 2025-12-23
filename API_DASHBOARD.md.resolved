@@ -1,0 +1,133 @@
+# 📊 API Reference: Dashboard
+> **Base URL:** `http://localhost:5000`
+> **Headers:** `Content-Type: application/json`, `Authorization: Bearer <TOKEN>`
+
+---
+
+## 1. 📈 Resumen Mensual (Summary)
+Entrega el balance del mes y la variación porcentual con respecto al mes anterior.
+
+### Petición
+*   **GET** `/dashboard/summary`
+*   **Query Params (Opcionales):**
+    *   `year`: Año (ej: 2024). Default: año actual.
+    *   `month`: Mes (1-12). Default: mes actual.
+
+### Respuesta Exitosa (200)
+```json
+{
+  "period": {
+    "month": 12,
+    "year": 2024
+  },
+  "summary": {
+    "income": {
+      "total": 1500000,
+      "previousMonth": 1400000,
+      "variationPercentage": 7.14,
+      "trend": "up"       // "up" (subió) | "down" (bajó) | "equal"
+    },
+    "expense": {
+      "total": 800000,
+      "previousMonth": 900000,
+      "variationPercentage": -11.11,
+      "trend": "down"     // Para gastos, "down" es bueno (pero la flecha indica dirección)
+    },
+    "debt": {
+      "totalPayment": 200000, // Suma de cuotas de deuda del mes
+      "pendingCount": 3       // Cantidad de deudas activas
+    },
+    "balance": {
+      "total": 500000,    // Income - (Expense + DebtPayments)
+      "status": "positive" // "positive" | "negative"
+    }
+  }
+}
+```
+
+---
+
+## 2. 🍰 Distribución por Categoría (Pie Chart)
+Agrupa todos los gastos del mes seleccionado por categoría.
+
+### Petición
+*   **GET** `/dashboard/category-distribution`
+*   **Query Params (Opcionales):**
+    *   `year`: Año.
+    *   `month`: Mes.
+
+### Respuesta Exitosa (200)
+```json
+{
+  "total": 1000000, // Gasto total del mes analizado
+  "categories": [
+    {
+      "id": 1,
+      "name": "Alimentación",
+      "total": 400000,
+      "percentage": 40.0,
+      "color": "#3357FF"
+    },
+    {
+      "id": 2,
+      "name": "Transporte",
+      "total": 200000,
+      "percentage": 20.0,
+      "color": "#3357FF"
+    },
+    {
+      "id": null,
+      "name": "Desconocido", // Si se borró la categoría
+      "total": 100000,
+      "percentage": 10.0,
+      "color": "#3357FF"
+    }
+  ]
+}
+```
+
+---
+
+## 3. 📊 Historial Semestral (Bar Chart)
+Devuelve los totales de los últimos 6 meses para construir gráficos comparativos.
+
+### Petición
+*   **GET** `/dashboard/history`
+*   **Nota:** No requiere parámetros, calcula los últimos 6 meses automáticamente.
+
+### Respuesta Exitosa (200)
+```json
+{
+  "history": [
+    {
+      "month": 7,
+      "year": 2024,
+      "income": 1200000,
+      "expense": 600000,
+      "debt": 100000
+    },
+    {
+      "month": 8,
+      "year": 2024,
+      "income": 1300000,
+      "expense": 650000,
+      "debt": 100000
+    },
+    {
+      "month": 9,
+      "year": 2024,
+      "income": 1250000,
+      "expense": 700000, // Gastos normales (sin deuda)
+      "debt": 100000     // Pagos de deuda
+    },
+    // ... hasta el mes actual
+    {
+      "month": 12,
+      "year": 2024,
+      "income": 1500000,
+      "expense": 800000,
+      "debt": 200000
+    }
+  ]
+}
+```

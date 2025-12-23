@@ -22,16 +22,20 @@ class ExpenseService {
     String token, {
     int page = 1,
     int limit = 10,
+    int? year,
+    int? month,
   }) async {
     try {
       if (token.isEmpty) {
         throw Exception('Token no disponible');
       }
 
+      String url = '${ApiConfig.baseUrl}${ApiConfig.expenseEndpoint}/?page=$page&limit=$limit';
+      if (year != null) url += '&year=$year';
+      if (month != null) url += '&month=$month';
+
       final response = await http.get(
-        Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.expenseEndpoint}/?page=$page&limit=$limit',
-        ),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

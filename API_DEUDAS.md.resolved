@@ -1,0 +1,227 @@
+# 📚 API Reference: Deudas, Bancos y Tarjetas
+> **Base URL:** `http://localhost:5000`
+> **Headers:** `Content-Type: application/json`, `Authorization: Bearer <TOKEN>`
+
+---
+
+## 1. 🏦 Bancos (Banks)
+
+### Listar Bancos
+*   **GET** `/bank`
+*   **Respuesta (200):**
+    ```json
+    [
+      {
+        "id": 1,
+        "name": "Banco Santander",
+        "id_estado": 1,
+        "createdAt": "2024-01-01T12:00:00Z"
+      },
+      {
+        "id": 2,
+        "name": "Banco Estado",
+        "id_estado": 1,
+        "createdAt": "2024-01-02T12:00:00Z"
+      }
+    ]
+    ```
+
+### Crear Banco
+*   **POST** `/bank`
+*   **Body:**
+    ```json
+    {
+      "name": "Scotiabank"
+    }
+    ```
+*   **Respuesta (201):** Objeto Banco creado.
+
+### Editar Banco
+*   **PUT** `/bank/:id`
+*   **Body:**
+    ```json
+    {
+      "name": "Scotiabank Azul",
+      "id_estado": 1
+    }
+    ```
+*   **Nota:** `id_estado: 2` desactiva (Hard lock), `id_estado: 1` activa.
+
+### Eliminar Banco
+*   **DELETE** `/bank/:id`
+*   **Respuesta (200):** `{ "message": "Bank deleted" }`
+
+---
+
+## 2. 💳 Tarjetas (Credit Cards)
+
+### Listar Tarjetas
+*   **GET** `/credit-card`
+*   **Respuesta (200):**
+    ```json
+    [
+      {
+        "id": 1,
+        "name": "Visa Gold",
+        "bankId": 1,
+        "bank": { "id": 1, "name": "Banco Santander" }
+      }
+    ]
+    ```
+
+### Crear Tarjeta
+*   **POST** `/credit-card`
+*   **Body:**
+    ```json
+    {
+      "name": "Mastercard Black",
+      "bankId": 1
+    }
+    ```
+
+### Editar Tarjeta
+*   **PUT** `/credit-card/:id`
+*   **Body:**
+    ```json
+    {
+      "name": "Mastercard Platinum",
+      "id_estado": 1
+    }
+    ```
+
+### Eliminar Tarjeta
+*   **DELETE** `/credit-card/:id`
+
+---
+
+## 3. 💸 Deudas (Debts)
+
+### Crear Deuda
+Genera una deuda maestra y automáticamente crea las cuotas (Expenses) futuras.
+
+*   **POST** `/debt`
+*   **Body:**
+    ```json
+    {
+      "creditCardId": 1,       // ID de la tarjeta usada
+      "totalAmount": 600000,   // Monto total de la compra
+      "installments": 3,       // Cantidad de cuotas
+      "categoryId": 2,         // Categoría del gasto
+      "description": "Compra TV",
+      "startDate": "2024-06-01" // Fecha primera cuota
+    }
+    ```
+*   **Respuesta (201):** La deuda creada.
+
+---
+
+### Listar Deudas
+*   **GET** `/debt`
+*   **Params:** `?page=1&limit=10`
+*   **Respuesta (200):**
+    ```json
+    {
+      "data": [
+        {
+          "id": 10,
+          "totalAmount": 600000,
+          "installments": 3,
+          "description": "Compra TV",
+          "creditCard": {
+             "id": 1,
+             "name": "Visa Gold",
+             "bank": { "id": 1, "name": "Banco Santander" }
+          }
+        }
+      ],
+      "pagination": { ... }
+    }
+    ```
+
+---
+
+### 🔥 Obtener Detalle Deuda (GET /:id)
+Recupera la deuda especifica y **todas sus cuotas**.
+
+*   **GET** `/debt/:id`
+*   **Ejemplo:** `/debt/10`
+*   **Respuesta (200):**
+    ```json
+    {
+      "id": 10,
+      "userId": 5,
+      "creditCardId": 1,
+      "totalAmount": 600000,
+      "installments": 3,
+      "description": "Compra TV",
+      "startDate": "2024-06-01T00:00:00.000Z",
+      "categoryId": 2,
+      "category": {
+        "id": 2,
+        "name": "Tecnología",
+        "description": "Gastos tech",
+        "id_estado": 1
+      },
+      "creditCard": {
+        "id": 1,
+        "name": "Visa Gold",
+        "bank": { "id": 1, "name": "Banco Santander" }
+      },
+      "expenses": [
+        {
+          "id": 501,
+          "amount": 200000,
+          "date": "2024-06-01",
+          "description": "Compra TV - Banco Santander - Visa Gold - Cuota 1/3",
+          "id_estado": 1
+        },
+        {
+          "id": 502,
+          "amount": 200000,
+          "date": "2024-07-01",
+          "description": "Compra TV - Banco Santander - Visa Gold - Cuota 2/3",
+          "id_estado": 1
+        },
+        {
+          "id": 503,
+          "amount": 200000,
+          "date": "2024-08-01",
+          "description": "Compra TV - Banco Santander - Visa Gold - Cuota 3/3",
+          "id_estado": 1
+        }
+      ]
+    }
+    ```
+
+---
+
+### ✏️ Editar Deuda
+Permite recalcular la deuda.
+
+*   **PUT** `/debt/:id`
+*   **Body (Ejemplo completo):**
+    ```json
+    {
+      "totalAmount": 900000,    // Cambió el precio
+      "installments": 6,        // Aumentaron las cuotas
+      "creditCardId": 2,        // Cambió de tarjeta
+      "description": "Compra TV + Soundbar",
+      "categoryId": 2,
+      "startDate": "2024-06-15" // Se movió la fecha de pago
+    }
+    ```
+*   **Efectos:**
+    1.  Se borran los expenses 501, 502, 503.
+    2.  Se crean 6 nuevos expenses de 150.000 cada uno.
+    3.  Se actualiza la descripción de los nuevos expenses con el nombre del nuevo banco/tarjeta.
+
+---
+
+### Eliminar Deuda
+*   **DELETE** `/debt/:id`
+*   **Respuesta (200):**
+    ```json
+    {
+      "message": "Debt and associated expenses deleted successfully"
+    }
+    ```
