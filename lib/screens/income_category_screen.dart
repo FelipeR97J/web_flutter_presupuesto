@@ -493,42 +493,10 @@
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 itemCount: _categories.length,
                 itemBuilder: (context, index) {
-                  final category = _categories[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.label_outline,
-                        color: category.isActive ? const Color(0xFF00897B) : Colors.grey,
-                      ),
-                      title: Text(category.name),
-                      subtitle: Text(
-                        category.description ?? 'Sin descripción',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Wrap(
-                        spacing: 8,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, size: 20),
-                            onPressed: () => _navigateToEditCategory(category),
-                          ),
-                          if (category.isActive)
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 20, color: Colors.red),
-                              onPressed: () => _handleDeactivateCategory(category),
-                            ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                            onPressed: () => _handleDeleteCategory(category),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildCategoryCard(_categories[index]);
                 },
               ),
             ),
@@ -548,7 +516,111 @@
         ],
       );
     }
+
+  Widget _buildCategoryCard(IncomeCategory category) {
+    final color = _getColorForCategory(category.name);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _navigateToEditCategory(category),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: category.isActive ? color.withOpacity(0.1) : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    category.isActive ? Icons.attach_money : Icons.money_off,
+                    color: category.isActive ? color : Colors.grey,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.name,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: category.isActive ? Colors.black87 : Colors.grey,
+                          decoration: category.isActive ? null : TextDecoration.lineThrough,
+                        ),
+                      ),
+                      if (category.description != null && category.description!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            category.description!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                        icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
+                        tooltip: 'Editar',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => _navigateToEditCategory(category),
+                    ),
+                    const SizedBox(width: 12),
+                    IconButton(
+                        icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                        tooltip: 'Eliminar',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => _handleDeleteCategory(category),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
+
+  Color _getColorForCategory(String name) {
+    final colors = [
+      Colors.green, Colors.teal, Colors.lightGreen, Colors.lime, 
+      Colors.cyan, Colors.blue, Colors.indigo, Colors.purple,
+      Colors.amber, Colors.orange, Colors.deepOrange, Colors.brown
+    ];
+    return colors[name.hashCode.abs() % colors.length];
+  }
+}
   
   class AddIncomeCategoryScreen extends StatefulWidget {
     const AddIncomeCategoryScreen({super.key});

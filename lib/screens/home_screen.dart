@@ -22,7 +22,9 @@ import 'bank_screen.dart';
 import 'credit_card_screen.dart';
 import 'dashboard_screen.dart';
 import 'inventory_screen.dart';
+import 'inventory_screen.dart';
 import 'settings_screen.dart';
+import 'monthly_report_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -348,7 +350,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      child: Column(
+      child: ListView(
+        padding: EdgeInsets.zero,
         children: [
           // Header con info del usuario
           Container(
@@ -399,11 +402,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           
-          // Menu Items
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              children: [
+          // Padding para los items del menú
+          const SizedBox(height: 8),
                 _buildSidebarItem(
                   Icons.dashboard,
                   'Dashboard',
@@ -478,9 +478,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Inventario',
                   'inventory',
                 ),
-              ],
-            ),
-          ),
+                _buildSidebarItem(
+                  Icons.analytics,
+                  'Reportes',
+                  'reports',
+                ),
+
           
           // Footer
           Container(
@@ -601,6 +604,8 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           onLogoutRequired: widget.onLogout,
         );
+      case 'reports':
+        return const MonthlyReportScreen();
       default:
         return Column(
           children: [
@@ -628,18 +633,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
+                      Expanded( // Use Expanded to allow text to truncate
+                        child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '¡Bienvenido, ${_user.firstName} ${_user.paternalLastName ?? ''}!',
+                            '¡Bienvenido, ${_user.firstName}!',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
+                    ), // Wrap contents in Flexible/Expanded
                       CircleAvatar(
                         radius: 28,
                         backgroundColor: Colors.white.withValues(alpha: 0.3),
@@ -665,242 +674,37 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ============================================
-                    // COLUMNA IZQUIERDA: Información de Perfil
-                    // ============================================
-                    Expanded(
-                      flex: 1,
-                      child: Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Información de Perfil',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.deepPurple,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              _buildCompactInfoCard('📧 Correo', _user.email),
-                              if (_user.rut != null)
-                                _buildCompactInfoCard('🆔 RUT', _user.rut!),
-                              if (_user.age != null)
-                                _buildCompactInfoCard('🎂 Edad', _user.age.toString()),
-                              if (_user.phoneNumber != null)
-                                _buildCompactInfoCard('📱 Teléfono', _user.phoneNumber!),
-                              if (_user.birthDate != null)
-                                _buildCompactInfoCard(
-                                  '📅 Nacimiento',
-                                  '${_user.birthDate!.day}/${_user.birthDate!.month}/${_user.birthDate!.year}',
-                                ),
-                              const SizedBox(height: 16),
-                              // Estado de Cuenta
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: _user.isActive ? Colors.green[50] : Colors.red[50],
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: _user.isActive ? Colors.green[200]! : Colors.red[200]!,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      _user.isActive
-                                          ? Icons.check_circle
-                                          : Icons.cancel,
-                                      color: _user.isActive
-                                          ? Colors.green
-                                          : Colors.red,
-                                      size: 24,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _user.isActive
-                                                ? 'Activo'
-                                                : 'Inactivo',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                              color: _user.isActive
-                                                  ? Colors.green[700]
-                                                  : Colors.red[700],
-                                            ),
-                                          ),
-                                          if (_user.lastLoginAt != null)
-                                            Text(
-                                              'Último: ${_user.lastLoginAt!.toLocal().day}/${_user.lastLoginAt!.toLocal().month}',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Si el ancho es menor a 900px, usamos diseño vertical (Columna)
+                    // De lo contrario, usamos diseño horizontal (Fila)
+                    bool isMobile = constraints.maxWidth < 900;
+
+                    if (isMobile) {
+                      return Column(
+                        children: [
+                          _buildProfileCard(context),
+                          const SizedBox(height: 16),
+                          _buildDashboardCard(context),
+                        ],
+                      );
+                    } else {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: _buildProfileCard(context),
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-
-                    // ============================================
-                    // COLUMNA DERECHA: Dashboard
-                    // ============================================
-                    Expanded(
-                      flex: 1,
-                      child: _dashboardLoading
-                          ? Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              ),
-                            )
-                          : Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Dashboard',
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.deepPurple,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    
-                                    // ============================================
-                                    // Items en HORIZONTAL (Row)
-                                    // ============================================
-                                    SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: Row(
-                                        children: [
-                                          // Resumen de Ingresos
-                                          SizedBox(
-                                            width: 120,
-                                            child: _buildDashboardMetric(
-                                              '💰 Ingresos',
-                                              _incomes.isEmpty ? '\$0' : '\$${NumberFormat('#,##0', 'es_ES').format(_incomeService.calculateTotal(_incomes).toInt())}',
-                                              _incomes.length.toString(),
-                                              Colors.green,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-
-                                          // Resumen de Gastos
-                                          SizedBox(
-                                            width: 120,
-                                            child: _buildDashboardMetric(
-                                              '💸 Gastos',
-                                              _expenses.isEmpty ? '\$0' : '\$${NumberFormat('#,##0', 'es_ES').format(_expenseService.calculateTotal(_expenses).toInt())}',
-                                              _expenses.length.toString(),
-                                              Colors.red,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-
-                                          // Resumen de Cuotas (Nuevo)
-                                          SizedBox(
-                                            width: 120,
-                                            child: _buildDashboardMetric(
-                                              '💳 Cuotas Mes',
-                                              '\$${NumberFormat('#,##0', 'es_ES').format(_totalInstallments.toInt())}',
-                                              'total a pagar',
-                                              Colors.deepOrange,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-
-                                          // Cantidad de Cuotas (Nuevo)
-                                          SizedBox(
-                                            width: 120,
-                                            child: _buildDashboardMetric(
-                                              '🔢 N° Cuotas',
-                                              _totalInstallmentsCount.toString(),
-                                              'pagos este mes',
-                                              Colors.amber[800]!,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-
-                                          // Resumen de Categorías de Ingresos
-                                          SizedBox(
-                                            width: 120,
-                                            child: _buildDashboardMetric(
-                                              '🏷️ Cat. Ingresos',
-                                              _incomeCategories.length.toString(),
-                                              'activas',
-                                              Colors.blue,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-
-                                          // Resumen de Categorías de Gastos
-                                          SizedBox(
-                                            width: 120,
-                                            child: _buildDashboardMetric(
-                                              '🏷️ Cat. Gastos',
-                                              _expenseCategories.length.toString(),
-                                              'activas',
-                                              Colors.orange,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    
-                                    // Botón de actualizar
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        onPressed: _loadDashboardData,
-                                        icon: const Icon(Icons.refresh),
-                                        label: const Text('Actualizar'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.deepPurple,
-                                          foregroundColor: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                    ),
-                  ],
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2, // Dashboard más ancho en desktop
+                            child: _buildDashboardCard(context),
+                          ),
+                        ],
+                      );
+                    }
+                  },
                 ),
               ),
             ),
@@ -926,6 +730,229 @@ class _HomeScreenState extends State<HomeScreen> {
     return const ExpenseCategoryScreen();
   }
 
+  Widget _buildProfileCard(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Información de Perfil',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.deepPurple,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildCompactInfoCard('📧 Correo', _user.email),
+            if (_user.rut != null)
+              _buildCompactInfoCard('🆔 RUT', _user.rut!),
+            if (_user.age != null)
+              _buildCompactInfoCard('🎂 Edad', _user.age.toString()),
+            if (_user.phoneNumber != null)
+              _buildCompactInfoCard('📱 Teléfono', _user.phoneNumber!),
+            if (_user.birthDate != null)
+              _buildCompactInfoCard(
+                '📅 Nacimiento',
+                '${_user.birthDate!.day}/${_user.birthDate!.month}/${_user.birthDate!.year}',
+              ),
+            const SizedBox(height: 16),
+            // Estado de Cuenta
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _user.isActive ? Colors.green[50] : Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _user.isActive ? Colors.green[200]! : Colors.red[200]!,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _user.isActive
+                        ? Icons.check_circle
+                        : Icons.cancel,
+                    color: _user.isActive
+                        ? Colors.green
+                        : Colors.red,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _user.isActive
+                              ? 'Activo'
+                              : 'Inactivo',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: _user.isActive
+                                ? Colors.green[700]
+                                : Colors.red[700],
+                          ),
+                        ),
+                        if (_user.lastLoginAt != null)
+                          Text(
+                            'Último: ${_user.lastLoginAt!.toLocal().day}/${_user.lastLoginAt!.toLocal().month}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardCard(BuildContext context) {
+    // Si está cargando y NO hay datos previos (carga inicial), mostramos spinner
+    // Si ya hay datos, mantenemos la tarjeta visible con un indicador sutil (ver abajo)
+    if (_dashboardLoading && _incomes.isEmpty && _expenses.isEmpty) {
+      return Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                 Text(
+                   'Dashboard',
+                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                     fontWeight: FontWeight.bold,
+                     color: Colors.deepPurple,
+                   ),
+                 ),
+                 if (_dashboardLoading)
+                   const SizedBox(
+                     width: 16, 
+                     height: 16, 
+                     child: CircularProgressIndicator(strokeWidth: 2)
+                   ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            // ============================================
+            // Items en HORIZONTAL (Row)
+            // ============================================
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  // Resumen de Ingresos
+                  SizedBox(
+                    width: 120,
+                    child: _buildDashboardMetric(
+                      '💰 Ingresos',
+                      _incomes.isEmpty ? '\$0' : '\$${NumberFormat('#,##0', 'es_ES').format(_incomeService.calculateTotal(_incomes).toInt())}',
+                      _incomes.length.toString(),
+                      Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Resumen de Gastos
+                  SizedBox(
+                    width: 120,
+                    child: _buildDashboardMetric(
+                      '💸 Gastos',
+                      _expenses.isEmpty ? '\$0' : '\$${NumberFormat('#,##0', 'es_ES').format(_expenseService.calculateTotal(_expenses).toInt())}',
+                      _expenses.length.toString(),
+                      Colors.red,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Resumen de Cuotas (Nuevo)
+                  SizedBox(
+                    width: 120,
+                    child: _buildDashboardMetric(
+                      '💳 Cuotas Mes',
+                      '\$${NumberFormat('#,##0', 'es_ES').format(_totalInstallments.toInt())}',
+                      'total a pagar',
+                      Colors.deepOrange,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Cantidad de Cuotas (Nuevo)
+                  SizedBox(
+                    width: 120,
+                    child: _buildDashboardMetric(
+                      '🔢 N° Cuotas',
+                      _totalInstallmentsCount.toString(),
+                      'pagos este mes',
+                      Colors.amber[800]!,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Resumen de Categorías de Ingresos
+                  SizedBox(
+                    width: 120,
+                    child: _buildDashboardMetric(
+                      '🏷️ Cat. Ingresos',
+                      _incomeCategories.length.toString(),
+                      'activas',
+                      Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Resumen de Categorías de Gastos
+                  SizedBox(
+                    width: 120,
+                    child: _buildDashboardMetric(
+                      '🏷️ Cat. Gastos',
+                      _expenseCategories.length.toString(),
+                      'activas',
+                      Colors.orange,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ============================================
   // MÉTODO AUXILIAR: Construir tarjeta de información compacta
   // ============================================
@@ -939,11 +966,17 @@ class _HomeScreenState extends State<HomeScreen> {
             label,
             style: TextStyle(color: Colors.grey[600], fontSize: 13),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
         ],

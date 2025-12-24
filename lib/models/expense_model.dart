@@ -4,6 +4,7 @@
 // Aquí puedes agregar más campos si es necesario
 // ============================================
 import 'package:intl/intl.dart';
+import 'expense_category_model.dart'; // Added import
 
 class Expense {
   final int id;
@@ -13,7 +14,8 @@ class Expense {
   final DateTime createdAt;
   final DateTime updatedAt;
   final int categoryId;
-  final int? debtId; // Field added
+  final int? debtId;
+  final ExpenseCategory? category; // Added field
 
   Expense({
     required this.id,
@@ -23,7 +25,8 @@ class Expense {
     required this.createdAt,
     required this.updatedAt,
     required this.categoryId,
-    this.debtId, // Parameter added
+    this.debtId,
+    this.category, // Added parameter
   });
 
   bool get isDebtPayment => debtId != null;
@@ -42,6 +45,7 @@ class Expense {
       updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : DateTime.now(),
       categoryId: json['categoryId'] as int? ?? 0,
       debtId: json['debtId'] as int?,
+      category: json['category'] != null ? ExpenseCategory.fromJson(json['category']) : null, // Added parsing
     );
   }
 
@@ -59,6 +63,7 @@ class Expense {
       'updatedAt': updatedAt.toIso8601String(),
       'categoryId': categoryId,
       'debtId': debtId,
+      // We generally don't need to send the full category object back, so omitting it or sending just ID is fine.
     };
   }
 

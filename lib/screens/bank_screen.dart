@@ -184,7 +184,7 @@ class _BankScreenState extends State<BankScreen> {
                       padding: const EdgeInsets.all(16),
                       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 300,
-                        childAspectRatio: 1.4,
+                        mainAxisExtent: 180, // Altura fija responsive
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),

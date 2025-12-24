@@ -8,6 +8,8 @@ import '../widgets/pagination_controls.dart';
 import '../widgets/expense_form_dialog.dart';
 import 'debt_detail_screen.dart'; // Added
 
+import '../services/expense_category_service.dart'; // Added import
+
 class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
 
@@ -18,9 +20,11 @@ class ExpenseScreen extends StatefulWidget {
 class _ExpenseScreenState extends State<ExpenseScreen> {
   final _authService = AuthService();
   final _expenseService = ExpenseService();
-  final _debtService = DebtService(); // Added
+  final _debtService = DebtService();
+  final _expenseCategoryService = ExpenseCategoryService(); // Added service
 
   List<Expense> _expenses = [];
+  Map<int, String> _categoryMap = {}; // Added map
   bool _isLoading = true;
   String? _errorMessage;
   
@@ -33,14 +37,33 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   int _totalPages = 1;
   final int _pageSize = 10;
   bool _isPaginationLoading = false;
-  double _totalExpenses = 0.0; // Total de gastos normales
-  double _totalInstallments = 0.0; // Total de cuotas de deuda
+  double _totalExpenses = 0.0;
+  double _totalInstallments = 0.0;
 
   @override
   void initState() {
     super.initState();
     _loadExpenses();
-    _loadTotalAmount(); // Cargar total al inicio
+    _loadTotalAmount();
+    _loadCategories(); // Added call
+  }
+
+  // ============================================
+  // MÉTODO: Cargar mapa de categorías
+  // ============================================
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _expenseCategoryService.getCategories(limit: 1000);
+      if (mounted) {
+        setState(() {
+          _categoryMap = {
+            for (var cat in categories.data) cat.id: cat.name,
+          };
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading categories map: $e');
+    }
   }
 
   // ============================================
@@ -355,10 +378,20 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
             ),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+      body: _buildContent(),
+    );
+  }
+
+  Widget _buildContent() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // ============================================
+          // FILTROS: Mes y Año (Movidos al body para responsive)
+          // ============================================
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             color: Colors.white,
             child: Row(
               children: [
@@ -373,21 +406,25 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                     items: List.generate(12, (index) {
                       return DropdownMenuItem(
                         value: index + 1,
-                        child: Text(DateFormat('MMMM', 'es_ES').format(DateTime(2022, index + 1))),
+                        child: Text(
+                          DateFormat('MMMM', 'es_ES').format(DateTime(2022, index + 1)),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       );
                     }),
                     onChanged: (value) {
                       if (value != null) {
                         setState(() {
                           _selectedMonth = value;
-                          _currentPage = 1; // Reset page
+                          _currentPage = 1; 
                         });
                         _loadExpenses(page: 1);
                       }
                     },
+                    isExpanded: true, // Evita overflow en el dropdown item
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     decoration: const InputDecoration(
@@ -407,7 +444,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                       if (value != null) {
                         setState(() {
                           _selectedYear = value;
-                          _currentPage = 1; // Reset page
+                          _currentPage = 1; 
                         });
                         _loadExpenses(page: 1);
                       }
@@ -417,54 +454,53 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
               ],
             ),
           ),
-        ),
-      ),
-      body: _buildContent(),
-    );
-  }
-
-  Widget _buildContent() {
-    return SingleChildScrollView(
-      child: _isLoading
-          ? const Padding(
-              padding: EdgeInsets.all(20),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          : _errorMessage != null
-              ? Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error, size: 64, color: Colors.red[300]),
-                        const SizedBox(height: 16),
-                        Text('Error: $_errorMessage'),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadExpenses,
-                          child: const Text('Reintentar'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : _expenses.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.trending_down, size: 64, color: Colors.grey[300]),
-                            const SizedBox(height: 16),
-                            const Text('No hay gastos registrados'),
-                          ],
-                        ),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error, size: 64, color: Colors.red[300]),
+                      const SizedBox(height: 16),
+                      Text('Error: $_errorMessage'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadExpenses,
+                        child: const Text('Reintentar'),
                       ),
-                    )
-                  : Column(
-                      children: [
+                    ],
+                  ),
+                ),
+              )
+            else if (_expenses.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.trending_down, size: 64, color: Colors.grey[300]),
+                      const SizedBox(height: 16),
+                      const Text('No hay gastos registrados'),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Column(
+                children: [
+                        // El padding y Column serán parte del child de SingleChildScrollView de _buildContent
+                        // por lo que no es necesario repetir Column aquí si ya estamos dentro de una.
+                        // Sin embargo, _buildContent devuelve SingleChildScrollView(child: Column(...)) 
+                        // y aquí estábamos en el 'else' de _expenses.isEmpty.
+                        // Para mantener la estructura, retornamos los widgets que siguen.
+
                         // ============================================
                         // TARJETA: Resumen de gastos totales
                         // ============================================
@@ -473,96 +509,51 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         // ============================================
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          child: Row(
-                            children: [
-                              // Tarjeta de Gastos Normales
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [Colors.indigo, Colors.indigo[300]!],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              // Si es muy angosto, apilar verticalmente
+                              if (constraints.maxWidth < 400) {
+                                return Column(
+                                  children: [
+                                    _buildSummaryCard(
+                                      title: 'Gastos',
+                                      amount: _totalExpenses,
+                                      gradientColors: [Colors.indigo, Colors.indigo[300]!],
+                                      shadowColor: Colors.indigo,
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.indigo.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Gastos',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        '\$${NumberFormat('#,##0', 'es_ES').format(_totalExpenses.toInt())}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              // Tarjeta de Cuotas
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [Colors.orange[800]!, Colors.orange[400]!],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
+                                    const SizedBox(height: 12),
+                                    _buildSummaryCard(
+                                      title: 'Total Cuotas',
+                                      amount: _totalInstallments,
+                                      gradientColors: [Colors.orange[800]!, Colors.orange[400]!],
+                                      shadowColor: Colors.orange,
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.orange.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
+                                  ],
+                                );
+                              }
+                              // Si hay espacio, mostrar en fila
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildSummaryCard(
+                                      title: 'Gastos',
+                                      amount: _totalExpenses,
+                                      gradientColors: [Colors.indigo, Colors.indigo[300]!],
+                                      shadowColor: Colors.indigo,
+                                    ),
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Total Cuotas',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        '\$${NumberFormat('#,##0', 'es_ES').format(_totalInstallments.toInt())}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildSummaryCard(
+                                      title: 'Total Cuotas',
+                                      amount: _totalInstallments,
+                                      gradientColors: [Colors.orange[800]!, Colors.orange[400]!],
+                                      shadowColor: Colors.orange,
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ],
+                                ],
+                              );
+                            },
                           ),
                         ),
                         // ============================================
@@ -574,99 +565,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemCount: _expenses.length,
                           itemBuilder: (context, index) {
-                            final expense = _expenses[index];
-                            final isDebt = expense.isDebtPayment;
-
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              color: isDebt ? const Color(0xFFFFF3E0) : null, // Naranja muy claro
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                leading: Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: isDebt ? Colors.orange[100] : Colors.indigo[100],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      isDebt ? Icons.credit_card : Icons.trending_down,
-                                      color: isDebt ? Colors.orange[800] : Colors.indigo[700],
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  expense.description,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 4),
-                                    Text(expense.formattedDate),
-                                    if (isDebt)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          'Gasto generado por deuda',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.orange[800],
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        if (isDebt)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                            margin: const EdgeInsets.only(bottom: 4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange,
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: const Text(
-                                              'CUOTA',
-                                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                        Text(
-                                          expense.formattedAmount,
-                                          style: TextStyle(
-                                            color: isDebt ? Colors.orange[800] : Colors.indigo[700],
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    if (!isDebt) ...[
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                                        onPressed: () => _handleDeleteExpense(expense),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                onTap: isDebt 
-                                  ? () {
-                                      if (expense.debtId != null) {
-                                        _navigateToDebtDetail(expense.debtId!);
-                                      }
-                                    }
-                                  : () => _navigateToEditExpense(expense),
-                              ),
-                            );
+                            return _buildExpenseCard(_expenses[index]);
                           },
                         ),
 
@@ -689,6 +588,206 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         ),
                       ],
                     ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard({
+    required String title,
+    required double amount,
+    required List<Color> gradientColors,
+    required Color shadowColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '\$${NumberFormat('#,##0', 'es_ES').format(amount.toInt())}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpenseCard(Expense expense) {
+    final isDebt = expense.isDebtPayment;
+    final color = isDebt ? Colors.orange[800]! : Colors.indigo[600]!;
+    final bgColor = isDebt ? Colors.orange[50]! : Colors.white;
+    
+    // Obtener nombre de categoría: prioridad objeto nested -> mapa local -> fallback
+    final categoryName = expense.category?.name ?? _categoryMap[expense.categoryId] ?? 'Sin categoría';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: isDebt 
+              ? () {
+                  if (expense.debtId != null) {
+                    _navigateToDebtDetail(expense.debtId!);
+                  }
+                }
+              : () => _navigateToEditExpense(expense),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                // Avatar / Icono
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isDebt ? Icons.credit_card : Icons.shopping_bag_outlined,
+                    color: color,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
+                // Info Principal
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        expense.description,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$categoryName • ${expense.formattedDate}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (isDebt)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            'Cuota de deuda',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.orange[800],
+                              fontStyle: FontStyle.italic,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // Monto y Acciones
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      expense.formattedAmount,
+                      style: TextStyle(
+                        fontSize: 14, // Compacto
+                        fontWeight: FontWeight.w900,
+                        color: color,
+                      ),
+                    ),
+                    if (!isDebt)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () => _navigateToEditExpense(expense),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.edit, size: 14, color: Colors.blue),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => _handleDeleteExpense(expense),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.delete, size: 14, color: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

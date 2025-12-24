@@ -193,7 +193,7 @@ class _CreditCardScreenState extends State<CreditCardScreen> {
                       padding: const EdgeInsets.all(16),
                       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 350,
-                        childAspectRatio: 1.6,
+                        mainAxisExtent: 180, // Altura fija responsive
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                       ),

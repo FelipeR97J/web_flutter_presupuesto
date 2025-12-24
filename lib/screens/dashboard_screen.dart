@@ -68,6 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text(
           'Dashboard Financiero',
           style: TextStyle(color: Colors.white),
+          overflow: TextOverflow.ellipsis,
         ),
         backgroundColor: Colors.deepPurple[600],
         elevation: 2,
@@ -105,13 +106,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       _buildSummaryCard(),
                       const SizedBox(height: 16),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _buildPieChartCard()),
-                          const SizedBox(width: 16),
-                          Expanded(child: _buildBarChartCard()),
-                        ],
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth < 900) {
+                            return Column(
+                              children: [
+                                _buildPieChartCard(),
+                                const SizedBox(height: 16),
+                                _buildBarChartCard(),
+                              ],
+                            );
+                          } else {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildPieChartCard()),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildBarChartCard()),
+                              ],
+                            );
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -224,6 +239,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           if (variation != null && trend != null) ...[
             const SizedBox(height: 4),
@@ -243,11 +260,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           : Colors.grey,
                 ),
                 const SizedBox(width: 4),
-                Text(
-                  '${variation.toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 11,
+                Flexible(
+                  child: Text(
+                    '${variation.toStringAsFixed(1)}%',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -514,13 +535,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 _buildLegendItem('Ingresos', Colors.green),
-                const SizedBox(width: 12),
                 _buildLegendItem('Gastos', Colors.red),
-                const SizedBox(width: 12),
                 _buildLegendItem('Deudas', Colors.orange),
               ],
             ),

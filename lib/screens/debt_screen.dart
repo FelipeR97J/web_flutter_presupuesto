@@ -194,31 +194,62 @@ class _DebtScreenState extends State<DebtScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedMonth,
-                    decoration: const InputDecoration(labelText: 'Mes', border: OutlineInputBorder()),
-                    items: List.generate(12, (index) {
-                      return DropdownMenuItem(value: index + 1, child: Text(DateFormat('MMMM', 'es_ES').format(DateTime(2000, index + 1))));
-                    }),
-                    onChanged: _onMonthChanged,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedYear,
-                    decoration: const InputDecoration(labelText: 'Año', border: OutlineInputBorder()),
-                    items: List.generate(5, (index) {
-                      final year = DateTime.now().year - 2 + index;
-                      return DropdownMenuItem(value: year, child: Text(year.toString()));
-                    }),
-                    onChanged: _onYearChanged,
-                  ),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Si el ancho es muy pequeño (< 400px), usamos columna
+                if (constraints.maxWidth < 400) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DropdownButtonFormField<int>(
+                        value: _selectedMonth,
+                        decoration: const InputDecoration(labelText: 'Mes', border: OutlineInputBorder()),
+                        items: List.generate(12, (index) {
+                          return DropdownMenuItem(value: index + 1, child: Text(DateFormat('MMMM', 'es_ES').format(DateTime(2000, index + 1))));
+                        }),
+                        onChanged: _onMonthChanged,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<int>(
+                        value: _selectedYear,
+                        decoration: const InputDecoration(labelText: 'Año', border: OutlineInputBorder()),
+                        items: List.generate(5, (index) {
+                          final year = DateTime.now().year - 2 + index;
+                          return DropdownMenuItem(value: year, child: Text(year.toString()));
+                        }),
+                        onChanged: _onYearChanged,
+                      ),
+                    ],
+                  );
+                } else {
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          value: _selectedMonth,
+                          decoration: const InputDecoration(labelText: 'Mes', border: OutlineInputBorder()),
+                          items: List.generate(12, (index) {
+                            return DropdownMenuItem(value: index + 1, child: Text(DateFormat('MMMM', 'es_ES').format(DateTime(2000, index + 1))));
+                          }),
+                          onChanged: _onMonthChanged,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          value: _selectedYear,
+                          decoration: const InputDecoration(labelText: 'Año', border: OutlineInputBorder()),
+                          items: List.generate(5, (index) {
+                            final year = DateTime.now().year - 2 + index;
+                            return DropdownMenuItem(value: year, child: Text(year.toString()));
+                          }),
+                          onChanged: _onYearChanged,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+              },
             ),
           ),
           Expanded(
@@ -265,7 +296,7 @@ class _DebtScreenState extends State<DebtScreen> {
                             padding: const EdgeInsets.all(16),
                             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                               maxCrossAxisExtent: 400,
-                              childAspectRatio: 1.2,
+                              mainAxisExtent: 310, // Aumentado para evitar overflow vertical (7px reportado)
                               crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
                             ),
