@@ -596,14 +596,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'inventory': // Added
         return const InventoryScreen();
       case 'settings': // Added
-        return SettingsScreen(
-          user: _user,
-          onProfileUpdated: _loadUserProfile,
-          onPasswordChanged: () {
-             // Ya se muestra un mensaje en la pantalla de cambio de contraseña
-          },
-          onLogoutRequired: widget.onLogout,
-        );
+        return const SettingsScreen();
       case 'reports':
         return const MonthlyReportScreen();
       default:
