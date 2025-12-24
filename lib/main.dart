@@ -20,6 +20,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF0F0F0F), // Dark like sidebar
+          foregroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: false,
+        ),
       ),
       home: const AuthWrapper(),
       debugShowCheckedModeBanner: false,

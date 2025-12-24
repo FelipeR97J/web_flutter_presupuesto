@@ -284,7 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Inicio'),
-          backgroundColor: Colors.deepPurple,
+          backgroundColor: const Color(0xFF0F0F0F), // Dark like sidebar
           foregroundColor: Colors.white,
         ),
         body: const Center(
@@ -296,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Inicio'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: const Color(0xFF0F0F0F), // Dark like sidebar
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -341,10 +341,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       width: 250,
       decoration: BoxDecoration(
-        color: Colors.deepPurple[900],
+        color: const Color(0xFF0F0F0F), // Netflix black
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(2, 0),
           ),
@@ -357,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.deepPurple[800],
+              color: const Color(0xFF1A1A1A), // Dark gray
               border: Border(
                 bottom: BorderSide(
                   color: Colors.white.withValues(alpha: 0.1),
@@ -365,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 CircleAvatar(
                   radius: 32,
@@ -538,10 +538,10 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: isActive ? Colors.deepPurple[700] : Colors.transparent,
+            color: isActive ? const Color(0xFFE50914).withOpacity(0.15) : Colors.transparent, // Netflix red tint
             border: Border(
               left: BorderSide(
-                color: isActive ? Colors.amber : Colors.transparent,
+                color: isActive ? const Color(0xFFE50914) : Colors.transparent, // Netflix red border
                 width: 4,
               ),
             ),
